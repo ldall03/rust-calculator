@@ -12,9 +12,7 @@ fn main() {
     let args_concat: String = args[1..].join("");
     println!("{}", args_concat);
     let tokens: Vec<Token> = tokenize(args_concat);
-    // for t in tokens {
-    //     println!("{:?}, {:?}, {:?}", t.t, t.op, t.value);
-    // }
+
     let mut parser = Parser::new(tokens);
     let result: f64 = parser.parse();
     println!("{}", result);

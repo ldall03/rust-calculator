@@ -1,23 +1,19 @@
-#[derive(Debug)]
-pub enum Op {
+#[derive(Debug, PartialEq)]
+pub enum Vocab {
     Plus,
     Minus,
     Mult,
     Div,
     OpParen,
     ClParen,
-}
-
-#[derive(Debug)]
-pub enum Type {
-    Op,
+    OpBracket,
+    ClBracket,
     Num,
 }
 
 pub struct Token {
-    pub t: Type,
-    pub op: Option<Op>,
-    pub value: Option<String>,
+    pub vocab: Vocab,
+    pub value: String,
 }
 
 fn is_valid_op(op: &char) -> bool {
@@ -41,41 +37,43 @@ pub fn tokenize(input: String) -> Vec<Token> {
             panic!("Invalid token {}", c);
         } else if is_valid_op(&c) && current.len() > 0 {
             t = Token {
-                t: Type::Num,
-                op: None,
-                value: Some(current),
+                vocab: Vocab::Num,
+                value: current,
             };
             current = String::new();
+            is_decimal = false;
             tokens.push(t);
             let op = match c {
-                '+' => Op::Plus,
-                '-' => Op::Minus,
-                '*' => Op::Mult,
-                '/' => Op::Div,
-                '(' | '[' => Op::OpParen,
-                ')' | ']' => Op::ClParen,
+                '+' => Vocab::Plus,
+                '-' => Vocab::Minus,
+                '*' => Vocab::Mult,
+                '/' => Vocab::Div,
+                '(' => Vocab::OpParen,
+                ')' => Vocab::ClParen,
+                '[' => Vocab::OpBracket,
+                ']' => Vocab::ClBracket,
                 _ => panic!("Invalid token {}", c),
             };
             t = Token {
-                t: Type::Op,
-                op: Some(op),
-                value: None,
+                vocab: op,
+                value: String::from("op"),
             };
             tokens.push(t);
         } else if is_valid_op(&c) {
             let op = match c {
-                '+' => Op::Plus,
-                '-' => Op::Minus,
-                '*' => Op::Mult,
-                '/' => Op::Div,
-                '(' | '[' => Op::OpParen,
-                ')' | ']' => Op::ClParen,
+                '+' => Vocab::Plus,
+                '-' => Vocab::Minus,
+                '*' => Vocab::Mult,
+                '/' => Vocab::Div,
+                '(' => Vocab::OpParen,
+                ')' => Vocab::ClParen,
+                '[' => Vocab::OpBracket,
+                ']' => Vocab::ClBracket,
                 _ => panic!("Invalid token {}", c),
             };
             t = Token {
-                t: Type::Op,
-                op: Some(op),
-                value: None,
+                vocab: op,
+                value: String::from("op"),
             };
             tokens.push(t);
         } else {
@@ -83,14 +81,13 @@ pub fn tokenize(input: String) -> Vec<Token> {
             panic!("Invalid Token {}", c);
         }
     }
+    // If we have one last number to push
     if current.len() > 0 {
         t = Token {
-            t: Type::Num,
-            op: None,
-            value: Some(current),
+            vocab: Vocab::Num,
+            value: current,
         };
         tokens.push(t);
     }
-
     tokens
 }
