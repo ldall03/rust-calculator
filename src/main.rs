@@ -65,8 +65,7 @@ fn tokenize(input: String) -> Vec<Token> {
                 '/' => Op::Div,
                 '(' | '[' => Op::OpParen,
                 ')' | ']' => Op::ClParen,
-                _ => panic!("Invalid token {}", c)
-
+                _ => panic!("Invalid token {}", c),
             };
             t = Token {
                 t: Type::Op,
@@ -82,7 +81,7 @@ fn tokenize(input: String) -> Vec<Token> {
                 '/' => Op::Div,
                 '(' | '[' => Op::OpParen,
                 ')' | ']' => Op::ClParen,
-                _ => panic!("Invalid token {}", c)
+                _ => panic!("Invalid token {}", c),
             };
             t = Token {
                 t: Type::Op,
