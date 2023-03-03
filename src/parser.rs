@@ -1,4 +1,3 @@
-//
 //      <expr>     ::= <term> <exprcl>
 //
 //      <exprcl>   ::= e
@@ -28,11 +27,8 @@ pub struct Parser {
 impl Parser {
     pub fn new(mut tokens: Vec<Token>) -> Self {
         tokens.reverse();
-        if let Some(current) = tokens.pop() {
-            Self { tokens, current }
-        } else {
-            panic!("Empty expr");
-        }
+        let current = tokens.pop().unwrap();
+        Self {tokens, current }
     }
 
     fn get_token(&mut self) {
@@ -41,17 +37,18 @@ impl Parser {
         }
     }
 
-    fn must_be(&mut self, op: Vocab) {
+    fn must_be(&mut self, op: Vocab) -> Result<(), i32> {
         if self.current.vocab != op {
-            panic!("Expected {:?}, but got {:?}", op, self.current.vocab);
+            return Err(-3);
         }
         self.get_token();
+        Ok(())
     }
 
-    pub fn parse(&mut self) -> f64 {
-        let res: f64 = self.parse_expr();
+    pub fn parse(&mut self) -> Result<f64, i32> {
+        let res = self.parse_expr();
         if self.tokens.len() > 0 {
-            panic!("There was an error parsing at: {:?}", self.current.vocab);
+            Err(-2)
         } else {
             res
         }
@@ -60,32 +57,33 @@ impl Parser {
     //      <factor>   ::= ( <expr> )
     //                   | [ <expr> ]
     //                   | NUM
-    fn parse_factor(&mut self) -> f64 {
-        if matches!(self.current.vocab, Vocab::OpParen) {
+    fn parse_factor(&mut self) -> Result<f64, i32> {
+        if self.current.vocab == Vocab::OpParen {
             self.get_token();
-            let ret: f64 = self.parse_expr();
-            self.must_be(Vocab::ClParen);
+            let ret = self.parse_expr();
+            self.must_be(Vocab::ClParen)?;
             ret
-        } else if matches!(self.current.vocab, Vocab::OpBracket) {
+        } else if self.current.vocab == Vocab::OpBracket {
             self.get_token();
-            let ret: f64 = self.parse_expr();
-            self.must_be(Vocab::ClBracket);
-            ret
-        } else if matches!(self.current.vocab, Vocab::Num) {
-            let ret: f64 = self.current.value.parse::<f64>().unwrap();
-            self.get_token();
+            let ret = self.parse_expr();
+            self.must_be(Vocab::ClBracket)?;
             ret
         } else {
-            panic!("Bad number");
-        }
+            let ret = self.current.value.parse::<f64>();
+            self.get_token();
+            match ret {
+                Ok(ret) => Ok(ret),
+                Err(_) => Err(-1)
+            }
+        } 
     }
 
     //      <unary>    ::= - <unary>
     //                   | <factor>
-    fn parse_unary(&mut self) -> f64 {
-        if matches!(self.current.vocab, Vocab::Minus) {
+    fn parse_unary(&mut self) -> Result<f64, i32> {
+        if self.current.vocab == Vocab::Minus {
             self.get_token();
-            -self.parse_unary()
+            Ok(-self.parse_unary()?)
         } else {
             self.parse_factor()
         }
@@ -94,50 +92,46 @@ impl Parser {
     //      <termcl>   ::= e
     //                   | * <unary> <termcl>
     //                   | / <unary> <termcl>
-    fn parse_termcl(&mut self, passed: f64) -> f64 {
-        if matches!(self.current.vocab, Vocab::Mult) {
+    fn parse_termcl(&mut self, passed: Result<f64, i32>) -> Result<f64, i32> {
+        if self.current.vocab == Vocab::Mult {
             self.get_token();
-            let unary: f64 = self.parse_unary();
-            let val: f64 = passed * unary;
-            self.parse_termcl(val)
-        } else if matches!(self.current.vocab, Vocab::Div) {
+            let unary = self.parse_unary()?;
+            self.parse_termcl(Ok(passed? * unary))
+        } else if self.current.vocab == Vocab::Div {
             self.get_token();
-            let unary: f64 = self.parse_unary();
-            let val: f64 = passed / unary;
-            self.parse_termcl(val)
+            let unary = self.parse_unary()?;
+            self.parse_termcl(Ok(passed? / unary))
         } else {
-            passed
+            passed // Base case
         }
     }
 
     //      <term>     ::= <unary> <termcl>
-    fn parse_term(&mut self) -> f64 {
-        let unary: f64 = self.parse_unary();
+    fn parse_term(&mut self) -> Result<f64, i32> {
+        let unary = self.parse_unary();
         self.parse_termcl(unary)
     }
 
     //      <exprcl>   ::= e
     //                  | + <term> <exprcl>
     //                  | - <term> <exprcl>
-    fn parse_exprcl(&mut self, passed: f64) -> f64 {
-        if matches!(self.current.vocab, Vocab::Plus) {
+    fn parse_exprcl(&mut self, passed: Result<f64, i32>) -> Result<f64, i32> {
+        if self.current.vocab == Vocab::Plus {
             self.get_token();
-            let term: f64 = self.parse_term();
-            let val: f64 = passed + term;
-            self.parse_exprcl(val)
-        } else if matches!(self.current.vocab, Vocab::Minus) {
+            let term = self.parse_term()?;
+            self.parse_termcl(Ok(passed? + term))
+        } else if self.current.vocab == Vocab::Minus {
             self.get_token();
-            let term: f64 = self.parse_term();
-            let val: f64 = passed - term;
-            self.parse_exprcl(val)
+            let term = self.parse_term()?;
+            self.parse_termcl(Ok(passed? - term))
         } else {
             passed
         }
     }
 
     //      <expr>     ::= <term> <exprcl>
-    fn parse_expr(&mut self) -> f64 {
-        let term: f64 = self.parse_term();
+    fn parse_expr(&mut self) -> Result<f64, i32> {
+        let term = self.parse_term();
         self.parse_exprcl(term)
     }
 }

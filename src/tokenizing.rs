@@ -77,7 +77,6 @@ pub fn tokenize(input: String) -> Vec<Token> {
             };
             tokens.push(t);
         } else {
-            print!("{}", c);
             panic!("Invalid Token {}", c);
         }
     }
